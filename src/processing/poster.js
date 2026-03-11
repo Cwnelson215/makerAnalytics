@@ -3,6 +3,7 @@ const { toMonthKey } = require('../utils/date');
 function processPoster(items, columnMap) {
   const dateCol = columnMap.dateCol;
   const materialCol = columnMap.materialCol;
+  const countCol = columnMap.countCol;
 
   const monthly = {};
 
@@ -15,10 +16,11 @@ function processPoster(items, columnMap) {
       monthly[key] = { total: 0, matte: 0, synthetic: 0 };
     }
 
-    monthly[key].total++;
+    const count = parseInt(item[countCol], 10) || 1;
+    monthly[key].total += count;
     const material = (item[materialCol] || '').toLowerCase();
-    if (material === 'matte') monthly[key].matte++;
-    else if (material === 'synthetic') monthly[key].synthetic++;
+    if (material === 'matte') monthly[key].matte += count;
+    else if (material === 'synthetic') monthly[key].synthetic += count;
   }
 
   const sortedKeys = Object.keys(monthly).sort();

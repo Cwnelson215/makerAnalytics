@@ -1,23 +1,5 @@
 const API_URL = 'https://api.monday.com/v2';
 
-function validateParams(boardId, groupId, dateColumnId, startDate, endDate) {
-  if (!/^\d+$/.test(boardId)) {
-    throw new Error(`Invalid boardId: must be numeric`);
-  }
-  if (!/^[a-zA-Z0-9_]+$/.test(groupId)) {
-    throw new Error(`Invalid groupId: must be alphanumeric/underscore`);
-  }
-  if (!/^[a-zA-Z0-9_]+$/.test(dateColumnId)) {
-    throw new Error(`Invalid dateColumnId: must be alphanumeric/underscore`);
-  }
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(startDate)) {
-    throw new Error(`Invalid startDate: must be YYYY-MM-DD`);
-  }
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(endDate)) {
-    throw new Error(`Invalid endDate: must be YYYY-MM-DD`);
-  }
-}
-
 async function mondayQuery(query) {
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), 30000);
@@ -57,16 +39,19 @@ function parseItem(item) {
   return parsed;
 }
 
-async function fetchBoardItems(boardId, groupId, dateColumnId, startDate, endDate) {
-  validateParams(boardId, groupId, dateColumnId, startDate, endDate);
-
-  const queryParams = `query_params: {rules: [{column_id: "${dateColumnId}", compare_value: ["${startDate}", "${endDate}"], operator: between}]}`;
+async function fetchBoardItems(boardId, groupId) {
+  if (!/^\d+$/.test(boardId)) {
+    throw new Error(`Invalid boardId: must be numeric`);
+  }
+  if (!/^[a-zA-Z0-9_]+$/.test(groupId)) {
+    throw new Error(`Invalid groupId: must be alphanumeric/underscore`);
+  }
 
   // First page
   const firstQuery = `query {
     boards(ids: ${boardId}) {
       groups(ids: "${groupId}") {
-        items_page(limit: 500, ${queryParams}) {
+        items_page(limit: 500) {
           cursor
           items {
             name

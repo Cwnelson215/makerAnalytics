@@ -9,14 +9,14 @@ const QUEUE_CONFIG = {
   printing: {
     boardId: 'PRINTING_BOARD_ID',
     groupId: 'PRINTING_GROUP_ID',
-    columnEnvVars: { dateCol: 'PRINTING_DATE_COL', typeCol: 'PRINTING_TYPE_COL' },
+    columnEnvVars: { dateCol: 'PRINTING_DATE_COL', typeCol: 'PRINTING_TYPE_COL', countCol: 'PRINTING_COUNT_COL' },
     processor: processPrinting,
     title: '3D Printing Analytics',
   },
   poster: {
     boardId: 'POSTER_BOARD_ID',
     groupId: 'POSTER_GROUP_ID',
-    columnEnvVars: { dateCol: 'POSTER_DATE_COL', materialCol: 'POSTER_MATERIAL_COL' },
+    columnEnvVars: { dateCol: 'POSTER_DATE_COL', materialCol: 'POSTER_MATERIAL_COL', countCol: 'POSTER_COUNT_COL' },
     processor: processPoster,
     title: 'Poster Queue Analytics',
   },
@@ -56,7 +56,24 @@ async function generateReport(startDate, endDate) {
         return `<section><h2>${escapeHtml(config.title)}</h2><p>Board ID not configured for "${escapeHtml(key)}". Check your .env file.</p></section>`;
       }
 
-      const items = await fetchBoardItems(boardId, groupId, columnMap.dateCol, startDate, endDate);
+      const allItems = await fetchBoardItems(boardId, groupId);
+
+      // Forward-fill blank dates from the previous row
+      let lastDate = null;
+      for (const item of allItems) {
+        if (item[columnMap.dateCol]) {
+          lastDate = item[columnMap.dateCol];
+        } else if (lastDate) {
+          item[columnMap.dateCol] = lastDate;
+        }
+      }
+
+      // Filter to the requested date range
+      const items = allItems.filter(item => {
+        const d = item[columnMap.dateCol];
+        return d && d >= startDate && d <= endDate;
+      });
+
       const { headers, rows } = config.processor(items, columnMap);
 
       const tableRows = rows

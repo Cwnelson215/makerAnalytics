@@ -3,6 +3,7 @@ const { toMonthKey } = require('../utils/date');
 function processPrinting(items, columnMap) {
   const dateCol = columnMap.dateCol;
   const typeCol = columnMap.typeCol;
+  const countCol = columnMap.countCol;
 
   const monthly = {};
 
@@ -15,10 +16,11 @@ function processPrinting(items, columnMap) {
       monthly[key] = { total: 0, fdm: 0, sla: 0 };
     }
 
-    monthly[key].total++;
+    const count = parseInt(item[countCol], 10) || 1;
+    monthly[key].total += count;
     const type = (item[typeCol] || '').toLowerCase();
-    if (type === 'fdm') monthly[key].fdm++;
-    else if (type === 'sla') monthly[key].sla++;
+    if (type === 'fdm') monthly[key].fdm += count;
+    else if (type === 'sla') monthly[key].sla += count;
   }
 
   const sortedKeys = Object.keys(monthly).sort();

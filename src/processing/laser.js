@@ -27,7 +27,7 @@ function processLaser(items, columnMap) {
 
     const m = monthly[key];
     m.requests++;
-    const fileCount = parseInt(item[filesCol], 10) || 0;
+    const fileCount = parseInt(item[filesCol], 10) || 1;
     m.files += fileCount;
 
     const mins = parseInt(item[minutesCol], 10) || 0;
