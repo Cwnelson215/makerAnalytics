@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Makerspace Analytics</title>
+  <style>
+    body { font-family: system-ui, sans-serif; max-width: 600px; margin: 4rem auto; padding: 0 1rem; }
+    h1 { color: #333; }
+    form { display: flex; flex-direction: column; gap: 1rem; }
+    label { font-weight: 600; color: #555; }
+    input { padding: 8px 12px; border: 1px solid #ccc; border-radius: 4px; font-size: 1rem; }
+    button { padding: 10px 20px; background: #0066cc; color: white; border: none; border-radius: 4px; font-size: 1rem; cursor: pointer; }
+    button:hover { background: #0052a3; }
+    button:disabled { background: #999; cursor: default; }
+    .date-range { display: flex; gap: 1rem; }
+    .date-range > div { flex: 1; }
+    #status { margin-top: 1rem; color: #555; }
+    #status.error { color: #cc0000; }
+  </style>
+</head>
+<body>
+  <h1>Makerspace Analytics</h1>
+  <form id="reportForm">
+    <div class="date-range">
+      <div>
+        <label for="startDate">Start Date</label>
+        <input type="date" id="startDate" name="startDate" required>
+      </div>
+      <div>
+        <label for="endDate">End Date</label>
+        <input type="date" id="endDate" name="endDate" required>
+      </div>
+    </div>
+    <button type="submit" id="submitBtn">Generate Report</button>
+  </form>
+  <div id="status"></div>
+  <script>
+    const form = document.getElementById('reportForm');
+    const submitBtn = document.getElementById('submitBtn');
+    const statusEl = document.getElementById('status');
+
+    window.api.onStatus((message) => {
+      statusEl.textContent = message;
+      statusEl.className = message.startsWith('Error') ? 'error' : '';
+    });
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const startDate = document.getElementById('startDate').value;
+      const endDate = document.getElementById('endDate').value;
+
+      submitBtn.disabled = true;
+      submitBtn.textContent = 'Generating…';
+      statusEl.textContent = '';
+      statusEl.className = '';
+
+      try {
+        await window.api.submitDates(startDate, endDate);
+      } catch (err) {
+        submitBtn.disabled = false;
+        submitBtn.textContent = 'Generate Report';
+      }
+    });
+  </script>
+</body>
+</html>
