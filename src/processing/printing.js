@@ -1,4 +1,4 @@
-const { toMonthKey } = require('../utils/date');
+const { toMonthKey, compareMonthKeys } = require('../utils/date');
 
 function processPrinting(items, columnMap) {
   const dateCol = columnMap.dateCol;
@@ -23,7 +23,7 @@ function processPrinting(items, columnMap) {
     else if (type === 'sla') monthly[key].sla += count;
   }
 
-  const sortedKeys = Object.keys(monthly).sort();
+  const sortedKeys = Object.keys(monthly).sort(compareMonthKeys);
   const rows = sortedKeys.map(key => ({
     month: key,
     total: monthly[key].total,

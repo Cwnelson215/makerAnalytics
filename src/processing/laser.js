@@ -1,4 +1,4 @@
-const { toMonthKey } = require('../utils/date');
+const { toMonthKey, compareMonthKeys } = require('../utils/date');
 
 function formatTime(totalSeconds) {
   const hrs = Math.floor(totalSeconds / 3600);
@@ -9,12 +9,12 @@ function formatTime(totalSeconds) {
 
 function processLaser(items, columnMap) {
   const dateCol = columnMap.dateCol;
-  const filesCol = columnMap.filesCol;
+  const piecesCol = columnMap.piecesCol;
   const minutesCol = columnMap.minutesCol;
   const secondsCol = columnMap.secondsCol;
 
   const monthly = {};
-  const grandTotals = { requests: 0, files: 0, totalSeconds: 0 };
+  const grandTotals = { requests: 0, pieces: 0, totalSeconds: 0 };
 
   for (const item of items) {
     const dateStr = item[dateCol];
@@ -22,13 +22,13 @@ function processLaser(items, columnMap) {
 
     const key = toMonthKey(dateStr);
     if (!monthly[key]) {
-      monthly[key] = { requests: 0, files: 0, totalSeconds: 0 };
+      monthly[key] = { requests: 0, pieces: 0, totalSeconds: 0 };
     }
 
     const m = monthly[key];
     m.requests++;
-    const fileCount = parseInt(item[filesCol], 10) || 1;
-    m.files += fileCount;
+    const pieceCount = parseInt(item[piecesCol], 10) || 1;
+    m.pieces += pieceCount;
 
     const mins = parseInt(item[minutesCol], 10) || 0;
     const secs = parseInt(item[secondsCol], 10) || 0;
@@ -36,19 +36,19 @@ function processLaser(items, columnMap) {
     m.totalSeconds += itemSeconds;
 
     grandTotals.requests++;
-    grandTotals.files += fileCount;
+    grandTotals.pieces += pieceCount;
     grandTotals.totalSeconds += itemSeconds;
   }
 
-  const sortedKeys = Object.keys(monthly).sort();
-  const headers = ['Month', 'Requests', 'Files', 'Time'];
+  const sortedKeys = Object.keys(monthly).sort(compareMonthKeys);
+  const headers = ['Month', 'Requests', '# of Pieces', 'Time'];
 
   const rows = sortedKeys.map(key => {
     const m = monthly[key];
-    return [key, m.requests, m.files, formatTime(m.totalSeconds)];
+    return [key, m.requests, m.pieces, formatTime(m.totalSeconds)];
   });
 
-  rows.push(['Totals', grandTotals.requests, grandTotals.files, formatTime(grandTotals.totalSeconds)]);
+  rows.push(['Totals', grandTotals.requests, grandTotals.pieces, formatTime(grandTotals.totalSeconds)]);
 
   return { headers, rows };
 }

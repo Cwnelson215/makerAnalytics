@@ -42,7 +42,7 @@ ipcMain.handle('generate-report', async (event, { startDate, endDate }) => {
     mainWindow.webContents.send('status', 'Generating report…');
 
     const html = await generateReport(startDate, endDate);
-    const tmpFile = path.join(os.tmpdir(), `makerspace-analytics-${Date.now()}.html`);
+    const tmpFile = path.join(os.tmpdir(), `workshop-analytics-${Date.now()}.html`);
     fs.writeFileSync(tmpFile, html);
 
     await shell.openExternal(`file://${tmpFile}`);

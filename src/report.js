@@ -4,6 +4,7 @@ const { processPoster } = require('./processing/poster');
 const { processLaser } = require('./processing/laser');
 const { escapeHtml } = require('./utils/html');
 const { formatDate } = require('./utils/date');
+const { buildWorkbook } = require('./utils/excel');
 
 const QUEUE_CONFIG = {
   printing: {
@@ -23,7 +24,7 @@ const QUEUE_CONFIG = {
   laser: {
     boardId: 'LASER_BOARD_ID',
     groupId: 'LASER_GROUP_ID',
-    columnEnvVars: { dateCol: 'LASER_DATE_COL', filesCol: 'LASER_FILES_COL', minutesCol: 'LASER_MINUTES_COL', secondsCol: 'LASER_SECONDS_COL' },
+    columnEnvVars: { dateCol: 'LASER_DATE_COL', piecesCol: 'LASER_FILES_COL', minutesCol: 'LASER_MINUTES_COL', secondsCol: 'LASER_SECONDS_COL' },
     processor: processLaser,
     title: 'Laser Cutting Analytics',
   },
@@ -40,8 +41,10 @@ async function generateReport(startDate, endDate) {
     throw new Error('Start date must be before or equal to end date.');
   }
 
-  const safeStartDate = escapeHtml(formatDate(startDate));
-  const safeEndDate = escapeHtml(formatDate(endDate));
+  const startLabel = formatDate(startDate);
+  const endLabel = formatDate(endDate);
+  const safeStartDate = escapeHtml(startLabel);
+  const safeEndDate = escapeHtml(endLabel);
 
   const sections = await Promise.all(
     Object.entries(QUEUE_CONFIG).map(async ([key, config]) => {
@@ -53,7 +56,7 @@ async function generateReport(startDate, endDate) {
       }
 
       if (!boardId) {
-        return `<section><h2>${escapeHtml(config.title)}</h2><p>Board ID not configured for "${escapeHtml(key)}". Check your .env file.</p></section>`;
+        return { title: config.title, rows: `Board ID not configured for "${key}". Check your .env file.` };
       }
 
       const allItems = await fetchBoardItems(boardId, groupId);
@@ -75,27 +78,38 @@ async function generateReport(startDate, endDate) {
       });
 
       const { headers, rows } = config.processor(items, columnMap);
+      return { title: config.title, headers, rows };
+    })
+  );
 
-      const tableRows = rows
-        .map(row => `<tr>${row.map(cell => `<td>${escapeHtml(cell)}</td>`).join('')}</tr>`)
-        .join('\n');
+  const sectionsHtml = sections.map(({ title, headers, rows }) => {
+    if (!headers) {
+      return `<section><h2>${escapeHtml(title)}</h2><p>${escapeHtml(rows)}</p></section>`;
+    }
 
-      return `<section>
-  <h2>${escapeHtml(config.title)}</h2>
+    const tableRows = rows
+      .map(row => `<tr>${row.map(cell => `<td>${escapeHtml(cell)}</td>`).join('')}</tr>`)
+      .join('\n');
+
+    return `<section>
+  <h2>${escapeHtml(title)}</h2>
   <table>
     <thead><tr>${headers.map(h => `<th>${escapeHtml(h)}</th>`).join('')}</tr></thead>
     <tbody>${tableRows}</tbody>
   </table>
 </section>`;
-    })
-  );
+  });
+
+  const xlsxBuffer = await buildWorkbook(sections, startLabel, endLabel);
+  const xlsxHref = `data:application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;base64,${Buffer.from(xlsxBuffer).toString('base64')}`;
+  const xlsxFileName = `workshop-analytics-${startDate}-to-${endDate}.xlsx`;
 
   return `<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Makerspace Analytics</title>
+  <title>Workshop Analytics</title>
   <style>
     body { font-family: system-ui, sans-serif; max-width: 1200px; margin: 2rem auto; padding: 0 1rem; }
     h1, h2 { color: #333; }
@@ -105,12 +119,15 @@ async function generateReport(startDate, endDate) {
     th, td { border: 1px solid #ddd; padding: 8px 12px; text-align: left; }
     th { background: #f5f5f5; font-weight: 600; }
     tr:last-child { font-weight: 700; background: #fafafa; }
+    .download { display: inline-block; padding: 10px 20px; background: #0066cc; color: white; border-radius: 4px; text-decoration: none; }
+    .download:hover { background: #0052a3; }
   </style>
 </head>
 <body>
-  <h1>Makerspace Analytics</h1>
+  <h1>Workshop Analytics</h1>
   <p>${safeStartDate} to ${safeEndDate}</p>
-  ${sections.join('\n  ')}
+  <a class="download" href="${xlsxHref}" download="${escapeHtml(xlsxFileName)}">Download Excel</a>
+  ${sectionsHtml.join('\n  ')}
 </body>
 </html>`;
 }

@@ -1,4 +1,4 @@
-const { toMonthKey } = require('../utils/date');
+const { toMonthKey, compareMonthKeys } = require('../utils/date');
 
 function processPoster(items, columnMap) {
   const dateCol = columnMap.dateCol;
@@ -23,7 +23,7 @@ function processPoster(items, columnMap) {
     else if (material === 'synthetic') monthly[key].synthetic += count;
   }
 
-  const sortedKeys = Object.keys(monthly).sort();
+  const sortedKeys = Object.keys(monthly).sort(compareMonthKeys);
   const rows = sortedKeys.map(key => ({
     month: key,
     total: monthly[key].total,
