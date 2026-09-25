@@ -28,7 +28,7 @@
     },
     "nsis": {
       "oneClick": true,
-      "perMachine": false
+      "perMachine": true
     },
     "linux": {
       "target": "AppImage"
